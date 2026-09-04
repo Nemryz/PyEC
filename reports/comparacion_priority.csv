@@ -1,0 +1,6 @@
+"priority","n","build_time_mean","deploy_time_mean","coverage_mean","bugs_mean","resolution_mean"
+"alta",1403,41.43,20.04,71.6,2.95,10.81
+"baja",1222,40.86,19.56,72.04,3.04,10.22
+"crítica",597,41.44,20.46,71.97,3.12,10.35
+"media",1743,43.68,20.58,71.93,2.98,10.64
+"missing",35,40.09,17.77,75.04,3.14,14.41
