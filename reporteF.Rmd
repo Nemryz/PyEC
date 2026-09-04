@@ -1,0 +1,343 @@
+---
+title: "Análisis de Métricas de Software y DevOps"
+subtitle: "Curso de Probabilidad y Estadística Computacional"
+author: "Ignacio Ampuero Chacón"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: true
+    toc_depth: 3
+    toc_float: true
+    theme: flatly
+    code_folding: hide
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE, fig.width = 9, fig.height = 6)
+
+# Instalación condicional de paquetes
+paquetes <- c("tidyverse", "moments", "knitr")
+nuevos <- paquetes[!(paquetes %in% installed.packages()[, "Package"])]
+if (length(nuevos)) install.packages(nuevos)
+
+library(tidyverse)
+library(moments)
+library(knitr)
+
+# Directorio de trabajo (ajustar según su entorno, dado que cada usuario tiene su propia ruta)
+setwd("C:/Users/ignac/OneDrive/Escritorio/PyEC/Lab03")
+# setwd("~/PyEC/lab03) Como predeterminado 
+
+```
+
+# Introducción
+
+Este reporte presenta el análisis estadístico de un dataset de métricas de desarrollo y despliegue de software. 
+
+El conjunto de datos contiene alrededor de 5.000 registros con diez variables que describen tiempos de build, despliegue, cobertura de pruebas, bugs, y características organizacionales (equipo, módulo, prioridad).
+
+El análisis se estructura en seis fases: carga y limpieza, descripción univariada, frecuencias y agrupaciones, análisis por grupo, relaciones bivariadas, y visualización final.
+
+Nota sobre reproducibilidad: Este documento puede regenerarse completamente ejecutando `Knit` en RStudio. Todos los cálculos y gráficos se producen automáticamente a partir del dataset limpio.
+
+---
+
+# 1. Carga y Limpieza de Datos
+
+## 1.1 Importación del dataset
+
+```{r carga}
+# Cargar el dataset limpio (generado por scripts/cargarLimpieza.R)
+df <- read_csv("data/clean/devops_metrics_clean.csv", show_col_types = FALSE)
+
+cat("Dimensiones del dataset:", nrow(df), "filas ×", ncol(df), "columnas\n")
+```
+
+## 1.2 Estructura de variables
+
+```{r estructura}
+glimpse(df)
+```
+
+## 1.3 Resumen de limpieza realizada
+
+El dataset original contenía las siguientes anomalías que fueron corregidas:
+
+- Valores faltantes: Entre 25 y 125 NA por columna, imputados por mediana agrupada por team
+- Errores tipográficos: "Alfa"→"Alpha", "BETA"→"Beta", "Gama"→"Gamma", "Auth"→"auth", "UI"→"ui"
+- Valores inválidos: Negativos convertidos a NA, test_coverage fuera de [0,100] corregido
+- Etiquetas inconsistentes: "fail"→"failed", "rollback"→"rolled_back", "SUCCESS"→"success"
+- Outliers: Detectados por método IQR y marcados con columnas flag
+
+```{r faltantes}
+cat("Valores faltantes restantes por columna:\n")
+print(colSums(is.na(df)))
+```
+
+---
+
+# 2. Descripción Univariada
+
+## 2.1 Variables cuantitativas
+
+```{r cuantitativas}
+cuantitativas <- c("build_time_min", "deploy_time_min", "commit_size_loc",
+                   "num_bugs", "test_coverage_pct", "ticket_resolution_h")
+
+resultados_cuant <- data.frame()
+for (var in cuantitativas) {
+  x <- df[[var]]
+  x <- x[!is.na(x)]
+  fila <- data.frame(
+    Variable = var,
+    N = length(x),
+    Media = round(mean(x), 2),
+    Mediana = round(median(x), 2),
+    Desv_Estandar = round(sd(x), 2),
+    Skewness = round(skewness(x), 3),
+    Kurtosis = round(kurtosis(x), 3),
+    row.names = NULL
+  )
+  resultados_cuant <- rbind(resultados_cuant, fila)
+}
+kable(resultados_cuant, caption = "Medidas de tendencia central, dispersión y forma")
+```
+
+Consideremos que las variables `build_time_min`, `deploy_time_min` y `ticket_resolution_h` presentan asimetría positiva elevada (skewness > 3), indicando que la mayoría de los valores se concentran en el extremo inferior con pocos casos muy altos. Mientras que la variable `test_coverage_pct` es aproximadamente simétrica (skewness ≈ -0.18).
+
+¿Qué quiere decir esto? Bueno, que la mayoría de los builds y despliegues son relativamente rápidos, pero existen algunos casos extremos que tardan mucho más tiempo, lo cual podría indicar problemas específicos en ciertos proyectos o equipos. Y, en ciertos módulos, la cobertura de pruebas es bastante consistente, centrada alrededor del 72%.
+
+## 2.2 Variables cualitativas
+
+```{r cualitativas}
+cat("Distribución de team:\n")
+print(table(df$team, useNA = "ifany"))
+
+cat("\nDistribución de deploy_status:\n")
+print(table(df$deploy_status, useNA = "ifany"))
+```
+
+## 2.3 Visualización univariada
+
+```{r hist_build, fig.cap="Distribución de Build Time: asimetría positiva con pocos builds muy largos"}
+ggplot(df, aes(x = build_time_min)) +
+  geom_histogram(bins = 30, fill = "#4A90D9", color = "white", alpha = 0.85) +
+  geom_vline(aes(xintercept = median(build_time_min, na.rm = TRUE)),
+             color = "#E74C3C", linetype = "dashed", linewidth = 1) +
+  labs(title = "Distribución de Build Time",
+       x = "Duración del build (minutos)", y = "Frecuencia") +
+  theme_minimal()
+```
+
+```{r box_coverage, fig.cap="Boxplot de cobertura de pruebas: distribución simétrica centrada en ~72%"}
+ggplot(df, aes(y = test_coverage_pct)) +
+  geom_boxplot(fill = "#27AE60", alpha = 0.8) +
+  labs(title = "Cobertura de Pruebas", y = "Cobertura (%)") +
+  theme_minimal() +
+  coord_flip()
+```
+
+---
+
+# 3. Frecuencias y Agrupaciones
+
+## 3.1 Regla de Sturges
+
+```{r sturges}
+n <- nrow(df)
+k_sturges <- ceiling(1 + 3.322 * log10(n))
+cat(sprintf("Número de clases (Sturges): k = 1 + 3.322 × log10(%d) = %d\n", n, k_sturges))
+```
+
+## 3.2 Tabla de frecuencias de build_time_min
+
+```{r freq_build}
+x <- df$build_time_min[!is.na(df$build_time_min)]
+rango <- max(x) - min(x)
+amplitud <- rango / k_sturges
+cortes <- seq(min(x), max(x) + amplitud, by = amplitud)
+freq <- cut(x, breaks = cortes, right = FALSE)
+tabla_freq <- data.frame(table(freq))
+colnames(tabla_freq) <- c("Intervalo", "Frecuencia")
+tabla_freq$Frec_Relativa <- round(tabla_freq$Frecuencia / sum(tabla_freq$Frecuencia) * 100, 2)
+kable(head(tabla_freq, 8), caption = "Primeros intervalos de build_time_min")
+```
+
+La clase modal de `build_time_min` es el primer intervalo, concentrando más del 60% de las observaciones. Esto refuerza la observación de que la mayoría de los builds son rápidos, con pocos casos que tardan significativamente más tiempo. Pero también es importante notar que hay un pequeño porcentaje de builds que se extienden mucho más allá del rango típico, lo que da por sentado alguna atención especial a esos casos extremos.
+
+## 3.3 Comparación por team
+
+```{r comp_team}
+comp_team <- df %>%
+  filter(team != "missing") %>%
+  group_by(team) %>%
+  summarise(
+    n = n(),
+    build_mediana = round(median(build_time_min, na.rm = TRUE), 2),
+    coverage_mediana = round(median(test_coverage_pct, na.rm = TRUE), 2),
+    tasa_exito = round(sum(deploy_status == "success") / n() * 100, 2),
+    .groups = "drop"
+  )
+kable(comp_team, caption = "Métricas clave por equipo")
+```
+
+# 4. Análisis por Grupo
+
+## 4.1 Tasa de éxito de despliegue
+
+```{r exito_module, fig.cap="Tasa de éxito por módulo: infra lidera con 67.9%"}
+exito_mod <- df %>%
+  filter(module != "missing") %>%
+  group_by(module) %>%
+  summarise(tasa = sum(deploy_status == "success") / n() * 100, .groups = "drop") %>%
+  arrange(desc(tasa))
+
+ggplot(exito_mod, aes(x = reorder(module, tasa), y = tasa, fill = reorder(module, tasa))) +
+  geom_bar(stat = "identity", alpha = 0.85, show.legend = FALSE) +
+  geom_text(aes(label = sprintf("%.1f%%", tasa)), vjust = -0.5, size = 3.5) +
+  labs(title = "Tasa de Éxito de Despliegue por Módulo",
+       x = "Módulo", y = "Tasa de éxito (%)") +
+  ylim(0, 78) +
+  coord_flip() +
+  theme_minimal()
+```
+
+## 4.2 Hallazgos principales
+
+```{r hallazgos}
+df_valid <- df %>% filter(team != "missing", module != "missing", priority != "missing")
+
+exito_team <- df_valid %>%
+  group_by(team) %>%
+  summarise(tasa = sum(deploy_status == "success") / n() * 100, .groups = "drop") %>%
+  arrange(desc(tasa))
+
+mejor <- exito_team %>% slice(1)
+peor <- exito_team %>% slice(n())
+
+cat(sprintf("• %s tiene la mayor tasa de éxito (%.2f%%)\n", mejor$team, mejor$tasa))
+cat(sprintf("• %s tiene la menor tasa de éxito (%.2f%%)\n", peor$team, peor$tasa))
+cat(sprintf("• Diferencia: %.2f puntos porcentuales\n", mejor$tasa - peor$tasa))
+cat(sprintf("• Módulo con mayor éxito: %s\n", exito_mod$module[1]))
+cat(sprintf("• Módulo con menor éxito: %s\n", exito_mod$module[nrow(exito_mod)]))
+```
+
+# 5. Relaciones Bivariadas
+
+## 5.1 Matriz de correlaciones
+
+```{r correlaciones}
+df_num <- df_valid %>% select(all_of(cuantitativas)) %>% drop_na()
+cor_matrix <- cor(df_num, method = "pearson")
+kable(round(cor_matrix, 3), caption = "Correlaciones de Pearson entre variables cuantitativas")
+```
+
+Uno de los hallazgos claves, fueron que todas las correlaciones son cercanas a cero (máximo |r| = 0.020). Siendo este un indicador de que las variables del dataset son estadísticamente independientes entre sí, lo cual es coherente con el proceso de generación de datos.
+
+Para quien no sabe del tema, una correlación cercana a cero significa que no hay una relación lineal entre las variables. 
+
+Por ejemplo, la cobertura de pruebas no parece influir en el número de bugs, y viceversa. Esto muy importante porque sugiere que mejorar una métrica no necesariamente afectará a otra. Y, podríamos hacer un tipo de testeo para ver si hay alguna relación no lineal, pero eso ya sería un análisis más avanzado, pero para dejarlo claro, en este dataset no hay evidencia de que las métricas estén relacionadas entre sí. Y, sí se quisiera hacer un análisis más avanzado podríamos explorar modelos de regresión no lineal o técnicas de ML para detectar patrones complejos, pero eso ya sería redundancia en este tipo de análisis exploratorio considerando que este es un dataset sintético con variables independientes.  
+
+## 5.2 Dispersión: Coverage vs Bugs
+
+```{r scatter_cov_bugs, fig.cap="Cobertura vs Bugs: sin correlación apreciable (r = 0.013)"}
+ggplot(df_valid %>% filter(!is.na(test_coverage_pct), !is.na(num_bugs)),
+       aes(x = test_coverage_pct, y = num_bugs)) +
+  geom_point(alpha = 0.2, size = 1.2, color = "#4A90D9") +
+  geom_smooth(method = "lm", color = "#E74C3C", se = TRUE) +
+  labs(title = "Cobertura de Pruebas vs Bugs",
+       subtitle = "Correlación Pearson: 0.013 (sin relación lineal)",
+       x = "Cobertura de pruebas (%)", y = "Número de bugs") +
+  theme_minimal()
+```
+
+## 5.3 Pruebas Chi-cuadrado
+
+```{r chi2}
+cont1 <- table(df_valid$team, df_valid$deploy_status)
+chi1 <- chisq.test(cont1)
+cat(sprintf("team × deploy_status: chi2 = %.2f, p-valor = %.4f\n", chi1$statistic, chi1$p.value))
+
+cont2 <- table(df_valid$module, df_valid$deploy_status)
+chi2 <- chisq.test(cont2)
+cat(sprintf("module × deploy_status: chi2 = %.2f, p-valor = %.4f\n", chi2$statistic, chi2$p.value))
+
+cont3 <- table(df_valid$priority, df_valid$deploy_status)
+chi3 <- chisq.test(cont3)
+cat(sprintf("priority × deploy_status: chi2 = %.2f, p-valor = %.4f\n", chi3$statistic, chi3$p.value))
+```
+
+Todos los p-valores superan 0.05, lo que indica que no existe asociación estadísticamente significativa entre las variables cualitativas analizadas, es decir, el estado de despliegue no depende del equipo, módulo o prioridad del ticket.
+
+## 5.4 Correlación ≠ Causalidad
+
+Las correlaciones observadas (todas cercanas a cero) indican ausencia de asociación lineal. 
+
+Incluso si se hubieran encontrado correlaciones altas, esto no implicaría causalidad. 
+
+Para establecer relaciones causales se requerirían experimentos controlados que este análisis observacional no puede proporcionar.
+
+# 6. Visualización Final
+
+```{r viz_status_team, fig.cap="Proporción de estados de despliegue por equipo: distribución consistente (~63-65% éxito)"}
+ggplot(df_valid, aes(x = team, fill = deploy_status)) +
+  geom_bar(position = "fill", alpha = 0.85) +
+  scale_fill_manual(values = c("success" = "#27AE60", "failed" = "#E74C3C", "rolled_back" = "#F39C12"),
+                    labels = c("Éxito", "Fallido", "Rollback")) +
+  labs(title = "Proporción de Estados de Despliegue por Equipo",
+       x = "Equipo", y = "Proporción", fill = "Estado") +
+  scale_y_continuous(labels = scales::percent) +
+  theme_minimal() +
+  theme(legend.position = "bottom")
+```
+
+```{r viz_resolution_priority, fig.cap="Tiempo de resolución por prioridad: sin diferencias sustanciales entre niveles"}
+ggplot(df_valid %>% filter(!is.na(ticket_resolution_h)),
+       aes(x = priority, y = ticket_resolution_h, fill = priority)) +
+  geom_boxplot(alpha = 0.8, show.legend = FALSE, outlier.alpha = 0.3) +
+  labs(title = "Tiempo de Resolución de Tickets por Prioridad",
+       x = "Prioridad", y = "Horas de resolución") +
+  theme_minimal()
+```
+
+# 7. Conclusiones
+
+## Hallazgos principales
+
+1. Distribución de métricas: Los tiempos de build y despliegue presentan asimetría positiva, con la mayoría de los valores concentrados en el rango inferior y pocos casos extremos. Lo que sugiere que la mayoría de los builds y despliegues son rápidos, pero hay algunos casos que requieren atención especial como mencionamos arriba en el comienzo de este documento. 
+
+2. Sin diferencias entre equipos: Las medianas de build time, cobertura y bugs son prácticamente idénticas entre los cuatro equipos (Alpha, Beta, Gamma, Delta). Esto indica que no hay un equipo que sobresalga o tenga problemas significativos en estas métricas, pero también puede derivarse a que el dataset es sintético y no refleja variabilidad real entre equipos, si no fuera sintético, podríamos decir que todos los equipos están operando de manera consistente en términos de eficiencia y calidad. 
+
+3. Módulo infra lidera en éxito: Con una tasa de despliegue exitoso del 67.9%, frente al 60.9% del módulo test. Esto sugiere que el módulo infra tiene procesos más robustos o menos complejidad en sus despliegues, mientras que el módulo test podría requerir mejoras en sus procedimientos de despliegue para aumentar la tasa de éxito. En la vida real, esto puede afectar directamente a la continuidad del negocio, ya que los despliegues fallidos pueden generar interrupciones en el servicio y afectar la experiencia del usuario final.
+
+4. Ausencia de correlaciones: Ningún par de variables cuantitativas muestra correlación apreciable (máximo |r| = 0.020), indicando independencia entre las métricas. Esta fue una de las observaciones más importantes, ya que nos dice que las métricas no están relacionadas entre sí, lo que es coherente con la naturaleza sintética del dataset. En un escenario real, podríamos esperar encontrar algunas correlaciones, por ejemplo, entre el tamaño del commit y el número de bugs, pero en este caso, no hay evidencia de ello. 
+
+5. Sin asociación entre cualitativas: Las pruebas Chi-cuadrado (son pruebas de independencia) no detectan asociación significativa entre team, module, priority y deploy_status. Es decir, el estado de despliegue no depende del equipo, módulo o prioridad del ticket. Esta idea refuerza considerablemente la hipótesis de que las métricas son independientes y que no hay factores externos que estén influyendo en los resultados de despliegue.
+
+## Limitaciones
+
+- El dataset fue generado sintéticamente con variables independientes, lo que explica la ausencia de correlaciones. Podríamos decir que esto es una limitación porque no refleja la complejidad de un entorno real de desarrollo de software, donde sí podrían existir relaciones entre las métricas. 
+
+- La categoría "missing" tiene pocas observaciones, lo que genera avisos en las pruebas Chi-cuadrado. Y, aunque no afecta significativamente los resultados, es importante tenerlo en cuenta al interpretar los hallazgos. Porque en un escenario real, los datos faltantes podrían indicar problemas en la recolección de métricas o en la gestión de tickets, lo que podría sesgar los resultados. Sobre todo en por ejemplo, el área de redes, donde los datos faltantes podrían ser críticos para la operación de la infraestructura, y afectar la toma de decisiones. 
+
+- El análisis es descriptivo y observacional, no permite establecer relaciones causales, esto es grave, ya que no podemos afirmar que mejorar una métrica necesariamente mejorará otra, ni que un equipo es mejor que otro en términos de eficiencia o calidad. Para establecer causalidad, se requerirían experimentos controlados o estudios longitudinales, pero eso está fuera del alcance de este análisis.
+
+# 8. Reproducción
+
+Para regenerar este análisis completamente:
+
+```bash
+# 1. Abrir el proyecto en RStudio
+# 2. Ejecutar los scripts en orden:
+source("scripts/generate_dataset.R")       # Genera el dataset (si no existe)
+source("scripts/cargarLimpieza.R")         # Limpieza
+source("scripts/descriptiva_univariada.R") # Análisis descriptivo
+source("scripts/frecuencias_agrupaciones.R") # Frecuencias
+source("scripts/analisis_grupo.R")         # Análisis por grupo
+source("scripts/relaciones_bivariadas.R")  # Correlaciones
+source("scripts/visualizacion_final.R")    # Visualización
+
+# 3. Knit este archivo .Rmd para regenerar el reporte HTML
+```
+
+Requisitos: R >= 4.2, paquetes `tidyverse`, `moments`, `knitr`.  
