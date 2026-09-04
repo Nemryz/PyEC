@@ -1,8 +1,8 @@
 # Análisis de Métricas de Software y DevOps
 
-Proyecto de la asignatura de Probabilidad y Estadística Computacional que realiza un análisis estadístico completo sobre un dataset de métricas de desarrollo y despliegue de software.
+Trabajo práctico correspondiente a la asignatura de Probabilidad y Estadística Computacional, en el cual se lleva a cabo un análisis estadístico integral sobre un conjunto de datos que refleja métricas típicas del desarrollo y despliegue de software.
 
-El objetivo es aplicar técnicas de estadística descriptiva, análisis de frecuencias, relaciones bivariadas y visualización de datos para comprender cómo estas métricas se relacionan con la calidad del software y la eficiencia de los procesos DevOps.
+El propósito central radica en aplicar herramientas de estadística descriptiva, análisis de frecuencias, relaciones bivariadas y visualización gráfica, con el fin de comprender el comportamiento de estas métricas y su vínculo con la calidad del producto y la eficiencia de los procesos DevOps.
 
 ## Dataset
 
@@ -21,24 +21,38 @@ El conjunto de datos contiene 5.000 registros con las siguientes variables:
 | `priority` | Cualitativa ordinal | Prioridad (baja, media, alta, crítica) |
 | `deploy_status` | Cualitativa nominal | Estado del despliegue (success, failed, rolled_back) |
 
-El dataset fue generado de forma determinista (semilla fija `set.seed(2026)`) para garantizar que los resultados sean replicables en cada ejecución. Contiene anomalías controladas (valores faltantes, outliers, errores tipográficos en categorías) que se resuelven durante la fase de limpieza.
+El dataset fue generado de forma determinista (semilla fija `set.seed(2026)`) para garantizar que los resultados sean replicables en cada ejecución. Contiene anomalías controladas (valores faltantes, outliers, errores tipográficos en categorías) que se resuelven durante la fase de limpieza. Para evitar que sea todo con ese toque de perfección y poder ir teniendo hipótesis durante el análisis, se decidió mantener estas anomalías en el dataset original y crear un dataset limpio (`devops_metrics_clean.csv`) tras la fase de limpieza como medida de aprendizaje.
 
 ## Estructura del Repositorio
 
 ```
 Lab03-Metricas-DevOps/
 ├── data/
-│   ├── raw/                          ← Dataset original (sin modificar)
-│   └── clean/                        ← Dataset limpio tras Fase 1
+│   ├── devops_metrics.csv            ← Dataset original (con anomalías controladas)
+│   └── clean/
+│       └── devops_metrics_clean.csv  ← Dataset limpio tras la fase de limpieza
 ├── scripts/
-│   ├── generate_dataset.R            ← Generación del dataset
-│   ├── cargarLimpieza.R              ← Fase 1: Carga y limpieza
-│   └── descriptiva_univariada.R      ← Fase 2: Análisis descriptivo
+│   ├── generate_dataset.R            ← Generación del dataset sintético
+│   ├── cargarLimpieza.R              ← Carga, inspección y limpieza de datos
+│   ├── descriptiva_univariada.R      ← Estadísticas descriptivas y gráficos univariados
+│   ├── frecuencias_agrupaciones.R    ← Frecuencias, regla de Sturges y comparaciones por grupo
+│   ├── analisis_grupo.R              ← Hallazgos por equipo, módulo y prioridad
+│   ├── relaciones_bivariadas.R       ← Correlaciones, dispersión y pruebas Chi-cuadrado
+│   └── visualizacion_final.R         ← Gráficos finales con títulos comunicativos
 ├── reports/
-│   ├── tabla_cuantitativas.csv       ← Medidas estadísticas (continuas/discretas)
-│   ├── tabla_cualitativas.csv        ← Frecuencias (categóricas)
-│   └── figuras/                      ← Gráficos PNG generados
-├── bitacora.md                       ← Registro de prompts (entregable central)
+│   ├── reporte_final.Rmd             ← Reporte reproducible en R Markdown
+│   ├── descriptiva/                  ← Tablas de estadísticas descriptivas
+│   ├── frecuencias/                  ← Tablas de frecuencias y comparaciones
+│   ├── grupo/                        ← Hallazgos por grupo
+│   ├── bivariada/                    ← Matrices de correlación
+│   └── figuras/
+│       ├── descriptiva/              ← Histogramas, boxplots y barras univariadas
+│       ├── frecuencias/              ← Gráficos comparativos por frecuencia
+│       ├── grupo/                    ← Tasas de éxito y boxplots por equipo
+│       ├── bivariada/                ← Scatter plots con línea de tendencia
+│       └── visualizacion/           ← 8 gráficos finales pulidos
+├── bitacora.md                       ← Registro de prompts utilizados 
+├── promptInicial.md                  ← Requisitos originales del trabajo
 └── README.md                         ← Este archivo
 ```
 
@@ -46,9 +60,9 @@ Lab03-Metricas-DevOps/
 
 ### Requisitos
 
-- R >= 4.2
-- RStudio (recomendado)
-- Paquetes: `tidyverse`, `moments`
+- R en su versión 4.2 o superior, en cualquiera de sus distribuciones (RStudio, R para Windows, R para Linux, etc.)
+- RStudio como entorno de desarrollo (aunque cualquier editor compatible con R sirve)
+- Los paquetes `tidyverse` y `moments`, los cuales se instalan de forma automática al ejecutar los scripts, se recomienda tenerlos previamente instalados para evitar interrupciones durante la ejecución.
 
 ### Pasos
 
@@ -59,32 +73,36 @@ git clone https://github.com/Nemryz/Lab03-Metricas-DevOps.git
 cd Lab03-Metricas-DevOps
 ```
 
-1. Abrir el proyecto en RStudio
+En caso de no contar con Git, se puede descargar el repositorio como archivo `.zip` desde GitHub y descomprimirlo en la ubicación deseada.
 
-2. Ejecutar los scripts en orden:
+1. Abrir el proyecto en RStudio, luego ejecutar los scripts respetando el siguiente orden:
 
 ```r
-source("scripts/generate_dataset.R")       # Genera el dataset (si no existe)
-source("scripts/cargarLimpieza.R")         # Se genera la limpieza
-source("scripts/descriptiva_univariada.R") # Posteriormente el análisis descriptivo
+source("scripts/generate_dataset.R")           # Genera el dataset (solo si no existe)
+source("scripts/cargarLimpieza.R")             # Limpia y exporta el dataset
+source("scripts/descriptiva_univariada.R")     # Estadísticas descriptivas y gráficos
+source("scripts/frecuencias_agrupaciones.R")   # Frecuencias y comparaciones por grupo
+source("scripts/analisis_grupo.R")             # Hallazgos por equipo, módulo y prioridad
+source("scripts/relaciones_bivariadas.R")      # Correlaciones y pruebas Chi-cuadrado
+source("scripts/visualizacion_final.R")        # Gráficos finales
 ```
 
-Cada script instala automáticamente los paquetes que falten.
+Cada script verifica y carga las dependencias necesarias antes de ejecutarse. Además, los scripts generan archivos de salida en la carpeta `reports/` que contienen tablas y gráficos correspondientes a cada análisis.
 
 ### Nota sobre los archivos CSV
 
-Los archivos `.csv` de este proyecto usan **coma como separador de campos** y **punto como separador decimal**, que es el formato estándar en ciencia de datos.
+Todos los archivos `.csv` de este proyecto emplean coma como separador de campos y punto como separador decimal, siendo este formato que resulta estándar dentro del ámbito de ciencia de datos y análisis estadístico.
 
-Si al abrirlos en Excel (configuración en español, normalmente acontecido) los datos aparecen en una sola columna, no es un error del archivo.
+En caso de abrirlos mediante Excel con configuración regional en español, es posible que los datos aparezcan agrupados en una sola columna, esto no constituye un error del archivo, sino una diferencia en la configuración regional, dado que Excel en español utiliza punto y coma como delimitador de campo, mientras que R y la mayoría de herramientas de análisis privilegian la coma.
 
-Esto ocurre porque Excel espera punto y coma como separador de campos en la configuración regional española. Mientras que en R y otros entornos de análisis de datos, la coma es el separador estándar. Especialmente si esta en inglés, donde la coma es el separador de campos y el punto es el separador decimal.
+Para subsanarlo en Excel:
 
-Para visualizarlos correctamente:
+> Datos a Obtener datos a Desde texto/CSV a Delimitador: Coma
 
-> **Excel a Datos luego a Obtener datos, y finalmente, Desde texto/CSV a Delimitador: Coma**
-
-Alternativamente, los scripts R leen estos archivos sin problema usando `read_csv()` del paquete `readr`.
+Asimismo, los scripts R leen estos archivos sin contratiempo alguno mediante la función `read_csv()` del paquete `readr`.
 
 ## Autor
 
-Ignacio Ampuero Chacón, Asignatura de Probabilidad y Estadística Computacional
+Ignacio Ampuero Chacón
+
+Asignatura de Probabilidad y Estadística Computacional, impartida por Felipe Veloso.
