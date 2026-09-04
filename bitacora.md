@@ -87,3 +87,27 @@ Verificación: Confirmé que las tasas de éxito son coherentes con las tablas d
 Noté que el hallazgo sobre bugs por team resulta trivial, con trivial nos referimos a que no presenta variación significativa, porque todos los equipos tienen la misma mediana (3.0), lo cual indica que el dataset no presenta variación significativa en esa métrica entre grupos.
 
 Verifiqué que los cuatro gráficos PNG se generaron correctamente y que las tablas exportadas contienen los datos esperados, para uso en reportes o presentaciones.
+
+## Entrada P006
+
+id: P006
+fase: Fase 5
+Versión_prompt: v1
+
+Prompt: Solicitud de creación de un script R que calculara las correlaciones entre variables cuantitativas (Pearson y Spearman), generara scatter plots con línea de regresión para los pares más relevantes, aplicara pruebas Chi-cuadrado a las tablas de contingencia entre variables cualitativas, e incluyera una nota explícita sobre la distinción entre correlación y causalidad.
+
+respuesta: Se creó el archivo `scripts/relaciones_bivariadas.R` que calcula matrices de correlación Pearson y Spearman para las seis variables cuantitativas, identifica los pares con mayor correlación absoluta, genera cuatro scatter plots con línea de tendencia (build vs deploy, commit vs bugs, coverage vs bugs, resolution vs deploy), ejecuta cinco pruebas Chi-cuadrado sobre cruces de variables cualitativas, y exporta las matrices de correlación a `reports/bivariada/`.
+
+Cambio realizados: Se creó `scripts/relaciones_bivariadas.R` (136 líneas). Se generaron cuatro scatter plots en `reports/figuras/bivariada/` y tres archivos CSV en `reports/bivariada/` (correlaciones Pearson, Spearman, y pares de mayor correlación).
+
+El hallazgo principal es que todas las correlaciones son cercanas a cero (máximo 0.020), lo cual es coherente con un dataset generado con variables independientes.
+
+Las pruebas Chi-cuadrado arrojan p-valores superiores a 0.05 en todos los cruces, indicando que no existe asociación estadísticamente significativa entre las variables cualitativas.
+
+Verificación: Confirmé que las correlaciones máximas no superan 0.021 en valor absoluto, lo cual es esperable dado que el dataset fue generado con variables muestreadas de forma independiente.
+
+Verifiqué, además, que los p-valores de Chi-cuadrado son todos mayores a 0.05 (el más cercano es module × deploy_status con p = 0.0635), lo que indica ausencia de asociación significativa.
+
+Los avisos sobre la aproximación Chi-cuadrado se deben a que la categoría "missing" tiene pocas observaciones en las tablas de contingencia, lo cual no invalida el resultado pero es pertinente mencionarlo.
+
+Y, por último, comprobe que los cuatro scatter plots (es decir, los gráficos de dispersión) se generaron con la línea de regresión visible y que las matrices exportadas contienen los valores correctos.

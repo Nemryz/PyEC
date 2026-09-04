@@ -1,0 +1,7 @@
+"","build_time_min","deploy_time_min","commit_size_loc","num_bugs","test_coverage_pct","ticket_resolution_h"
+"build_time_min",1,-0.0175,0.0079,-7e-04,0.0152,7e-04
+"deploy_time_min",-0.0175,1,0.015,0.0077,0.0104,0.0015
+"commit_size_loc",0.0079,0.015,1,0.003,5e-04,-0.0023
+"num_bugs",-7e-04,0.0077,0.003,1,0.0189,-0.0188
+"test_coverage_pct",0.0152,0.0104,5e-04,0.0189,1,-1e-04
+"ticket_resolution_h",7e-04,0.0015,-0.0023,-0.0188,-1e-04,1

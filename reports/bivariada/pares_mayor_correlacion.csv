@@ -1,0 +1,11 @@
+"par","cor"
+"commit_size_loc vs deploy_time_min",0.020412894372269
+"test_coverage_pct vs ticket_resolution_h",-0.019454866804567
+"build_time_min vs test_coverage_pct",0.0191078753856787
+"deploy_time_min vs test_coverage_pct",0.0182476195399602
+"commit_size_loc vs ticket_resolution_h",-0.015254884769072
+"num_bugs vs test_coverage_pct",0.0127381415325662
+"build_time_min vs ticket_resolution_h",-0.0124991300641509
+"deploy_time_min vs ticket_resolution_h",-0.0122026754117435
+"build_time_min vs deploy_time_min",-0.0099706512156186
+"build_time_min vs commit_size_loc",0.00932842969734109
