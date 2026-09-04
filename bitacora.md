@@ -47,3 +47,23 @@ respuesta: Se creó el archivo `scripts/descriptiva_univariada.R` que carga el d
 Cambio realizados: Se creó `scripts/descriptiva_univariada.R` (120 líneas). Se generaron `reports/tabla_cuantitativas.csv` (6 variables × 16 medidas) y `reports/tabla_cualitativas.csv` (21 filas de frecuencias). Se produjeron 16 archivos PNG en `reports/figuras/`. Se requirió la instalación del paquete `moments` para las funciones de asimetría y curtosis.
 
 Verificación: Confirmé que los valores de skewness son positivos para las variables con distribución log-normal (build_time_min: 3.389, deploy_time_min: 5.166, ticket_resolution_h: 6.077), lo cual es coherente con colas derechas alargadas. Verifiqué que test_coverage_pct tiene skewness ligeramente negativa (-0.176) indicando leve asimetría izquierda. Comprobé que las frecuencias relativas de cada variable cualitativa suman aproximadamente 100%, y que los 16 archivos PNG fueron generados correctamente en `reports/figuras/`. Los avisos de ggplot2 sobre filas removidas corresponden a los valores NA que se excluyen automáticamente al graficar.
+
+## Entrada P004
+
+id: P004
+fase: Fase 3
+prompt_version: v1
+
+Prompt: Solicitud de creación de un script R que aplicara la regla de Sturges para determinar el número de clases de las variables cuantitativas, generara tablas de frecuencias con intervalos y clase modal, y realizara comparaciones de medias agrupadas por team, module y priority. Adicionalmente, se pidieron tablas de contingencia entre variables cualitativas y gráficos comparativos.
+
+respuesta: Se creó el archivo `scripts/frecuencias_agrupaciones.R` que calcula k = 1 + 3.322 × log₁₀(5000) = 14 clases mediante la fórmula de Sturges, genera tablas de frecuencias con intervalos, frecuencia absoluta, relativa y acumulada para cada variable cuantitativa, identifica la clase modal, y produce comparaciones de medias por team (5 grupos), module (7 grupos) y priority (5 grupos). También genera tres tablas de contingencia (team×deploy_status, priority×deploy_status, module×deploy_status) y tres gráficos comparativos (boxplot de build_time por team, boxplot de resolución por priority, barras apiladas de status por team).
+
+Cambio realizados: Se creó `scripts/frecuencias_agrupaciones.R` (130 líneas). Se generaron cuatro archivos CSV en `reports/`: tabla_frecuencias_sturges.csv, comparacion_team.csv, comparacion_module.csv, comparacion_priority.csv. Se produjeron tres gráficos PNG adicionales en `reports/figuras/`.
+
+Verificación: Confirmé que la fórmula de Sturges produce k=14 clases para n=5000 (1 + 3.322 × 3.699 = 13.29, redondeado a 14).
+
+Verifiqué que las clases modales son coherentes con las distribuciones observadas en la Fase 2 (por ejemplo, build_time_min tiene su clase modal en [2.53, 39.5) con 3073 observaciones, lo cual coincide con la asimetría positiva detectada previamente).
+
+Comprobé que las tablas de contingencia muestran distribuciones proporcionales similares entre equipos, y que los gráficos se generaron sin errores.
+
+Además, el aviso de ggplot2 sobre filas removidas corresponde a los valores NA excluidos del boxplot.
