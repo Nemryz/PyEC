@@ -67,3 +67,23 @@ Verifiqué que las clases modales son coherentes con las distribuciones observad
 Comprobé que las tablas de contingencia muestran distribuciones proporcionales similares entre equipos, y que los gráficos se generaron sin errores.
 
 Además, el aviso de ggplot2 sobre filas removidas corresponde a los valores NA excluidos del boxplot.
+
+## Entrada P005
+
+id: P005
+fase: Fase 4
+prompt_version: v1
+
+Prompt: Solicitud de creación de un script R que realizara un análisis por grupo comparando métricas entre equipos, módulos y prioridades, calculando tasas de éxito de despliegue por grupo, medianas de las variables clave, y formulando hallazgos concretos respaldados con evidencia numérica. Se pidieron además gráficos comparativos de tasas de éxito y boxplots por grupo.
+
+Respuesta: Se creó el archivo `scripts/analisis_grupo.R` que filtra los registros válidos (excluyendo la categoría "missing"), calcula la tasa de éxito, fallo y rollback por team, module y priority, obtiene medianas de las variables numéricas por grupo, y genera cinco hallazgos redactados con cifras específicas.
+
+Adicionalmente produce cuatro gráficos, barras de tasa de éxito por team y module, boxplot de cobertura por team, y boxplot de bugs por module.
+
+Cambio realizados: Se creó `scripts/analisis_grupo.R` (140 líneas). Se generaron cinco archivos CSV de hallazgos en `reports/` y cuatro gráficos PNG en `reports/figuras/`. Los hallazgos principales fueron: Alpha lidera en tasa de éxito (65.32%) frente a Beta (62.88%), el módulo infra tiene la mayor tasa de éxito (67.93%) y test la menor (60.87%), Delta presenta la mayor cobertura de pruebas (72.8%), y los tickets de prioridad media tardan más en resolverse (7.68 h) que los de prioridad baja (7.38 h).
+
+Verificación: Confirmé que las tasas de éxito son coherentes con las tablas de contingencia (la proporción de success es similar entre equipos, rondando el 63-65%).
+
+Noté que el hallazgo sobre bugs por team resulta trivial, con trivial nos referimos a que no presenta variación significativa, porque todos los equipos tienen la misma mediana (3.0), lo cual indica que el dataset no presenta variación significativa en esa métrica entre grupos.
+
+Verifiqué que los cuatro gráficos PNG se generaron correctamente y que las tablas exportadas contienen los datos esperados, para uso en reportes o presentaciones.
