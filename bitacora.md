@@ -111,3 +111,25 @@ Verifiqué, además, que los p-valores de Chi-cuadrado son todos mayores a 0.05 
 Los avisos sobre la aproximación Chi-cuadrado se deben a que la categoría "missing" tiene pocas observaciones en las tablas de contingencia, lo cual no invalida el resultado pero es pertinente mencionarlo.
 
 Y, por último, comprobe que los cuatro scatter plots (es decir, los gráficos de dispersión) se generaron con la línea de regresión visible y que las matrices exportadas contienen los valores correctos.
+
+## Entrada P007
+
+id: P007
+fase: Fase 6
+versión prompt: v2
+
+Prompt: Solicitud de creación de un script R que generara visualizaciones finales con títulos que comunicaran hallazgos específicos, ejes con unidades claras, y subtítulos con contexto.
+
+Se pidieron ocho gráficos que cubrieran los cuatro tipos requeridos: histogramas para variables continuas, boxplots para comparaciones entre grupos, barras para variables cualitativas, y dispersión para relaciones entre cuantitativas.
+
+Respuesta: Se creó el archivo `scripts/visualizacion_final.R` que genera ocho gráficos PNG en `reports/figuras/visualizacion/`, cada uno con un título que comunica el hallazgo principal, un subtítulo con contexto numérico, y ejes etiquetados con sus unidades correspondientes.
+
+Se aplicó un tema personalizado consistente en todos los gráficos para mantener coherencia visual.
+
+Cambio realizados: Se creó `scripts/visualizacion_final.R` (130 líneas).
+
+Se generaron ocho gráficos PNG numerados del 01 al 08 en `reports/figuras/visualizacion/`.
+
+Los gráficos cubren: histograma de build time (asimetría positiva), boxplot de build time por team (sin diferencias), barras de tasa de éxito por module (infra lidera con 67.9%), dispersión de coverage vs bugs (sin correlación), boxplot de resolución por priority (similar entre grupos), barras apiladas de status por team (proporciones estables), histograma de cobertura (simétrica en ~72%), y dispersión de build vs deploy (sin correlación).
+
+Verificación: Confirmé que los ocho archivos PNG se generaron correctamente en la carpeta `reports/figuras/visualizacion/`. Además, que los títulos de cada gráfico comunican un hallazgo concreto con evidencia numérica (por ejemplo, "El 61% de los builds dura menos de 39.5 minutos" o "Infra tiene la mayor tasa de despliegue exitoso (67.9%)"). Comprobé que los ejes incluyen las unidades correspondientes (minutos, horas, porcentaje, cantidad) y que los mensajes de `geom_smooth()` sobre la fórmula son informativos y no representan errores.
