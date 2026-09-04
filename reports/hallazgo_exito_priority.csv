@@ -1,0 +1,5 @@
+"priority","total","tasa_exito_pct","tasa_fallo_pct","tasa_rollback_pct"
+"crítica",587,66.1,19.59,14.31
+"baja",1202,64.23,20.55,14.81
+"media",1706,63.31,19.99,16.12
+"alta",1380,63.26,20.51,15.51
