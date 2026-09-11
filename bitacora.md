@@ -1,135 +1,149 @@
-# Bitácora de Prompts
+# Bitacora de trabajo 
 
-## Entrada P001
+## Primer Prompt dado a z.ai 
 
-id: P001
-fase: Init
-prompt_version: v1
+Dado este .csv, analiza su estructura, debe poseer datos erroneos con fallos, por lo tanto, destina el uso del análisis a través de parámetros que estaremos analizando mediante un cuestionario en conjunto (deberás de realizarme preguntas para tomar un énfasis mayor a la destreza ejecutada de cada proceso y subproceso). Además, preguntas para analizar un testeo dentro del .csv de modo que determine la destreza de la limpieza de los datos. Solo esto por el momento.  
 
-Prompt: Solicitud de generación de un dataset de aproximadamente cinco mil registros que contemple diez variables asociadas a métricas de software y prácticas de DevOps, con la particularidad de que los datos fueran deterministas y contuvieran anomalías controladas que permitieran ejercitar la limpieza en una etapa posterior.
+## Resultados del prompt
 
-respuesta: Se construyó un script en R que emplea una semilla fija (`set.seed(2026)`) para garantizar la reproducibilidad, generando un data frame con las siguientes características:
+Análisis del CSV  
 
-variables continuas (build_time_min, deploy_time_min, test_coverage_pct, ticket_resolution_h) distribuidas bajo modelos log-normales y normales; variables discretas (commit_size_loc, num_bugs) basadas en distribuciones de Poisson; y variables categóricas (team, module, priority, deploy_status) muestreadas con probabilidades ponderadas.
+Nota importante: aún no veo el archivo .csv adjunto en nuestra conversación. Para ejecutar el análisis real, necesito que lo pegues como texto o lo compartas. Mientras tanto, te presento el marco de trabajo y las primeras preguntas del cuestionario para que empecemos.
 
-Adicionalmente, se inyectaron de forma deliberada cien valores faltantes distribuidos entre todas las columnas, quince casos extremos en las variables continuas, treinta y cinco errores tipográficos en las categorías de team y module, y ocho valores inválidos (negativos, fuera de rango y etiquetas inconsistentes en deploy_status).
+## Fase 1 - Parámetros de análisis estructural (a aplicar sobre el archivo)
 
-Cambio realizados: Se creó el archivo `scripts/generate_dataset.R` con el código completo de generación. Tras su ejecución, se produjo el archivo `devops_metrics.csv` con cinco mil filas y diez columnas, el cual fue verificado visualmente en la consola de RStudio confirmando que los tipos de dato, los rangos y las frecuencias de las variables categóricas coincidían con lo esperado.
+1. Esquema general: delimitador, codificación, presencia de encabezados, número de filas y columnas.
+2. Tipos de datos por columna: numéricos, texto, fechas, categóricos.
+3. Consistencia de esquema: filas con campos de más o de menos.
 
-No obstante, el archivo se originó en el directorio de trabajo por defecto de RStudio, por lo que fue necesario trasladarlo manualmente a la raíz del proyecto para que sea visible en su totalidad.
+## Fase 2 — Parámetros de detección de fallos
 
-Verificación: Revisé que el dataset contuviera exactamente cinco mil registros y diez columnas, que las variables numéricas presentaran los rangos esperados (incluyendo los valores negativos y los outliers introducidos), que las categorías de team incluyeran los typos planteados (Alfa, BETA, Gama, Delta con espacio), que module mostrara las variaciones de mayúsculas y espacios (Auth, api , UI), y que deploy_status contuviera las etiquetas inconsistentes (fail, rollback, SUCCESS). Además, confirmé que los valores faltantes estaban presentes en todas las columnas y que test_coverage_pct tenía exactamente dos casos fuera del rango válido.
+| Parámetro | Qué busca |
+|---|---|
+| Completitud | Nulos, celdas vacías |
+| Unicidad | Duplicados totales o por clave |
+| Consistencia | Formatos de fecha, mayúsculas, unidades |
+| Validez | Valores fuera de rango (edades negativas, etc.) |
+| Exactitud | Errores tipográficos, valores imposibles |
+| Uniformidad | Mezcla de unidades o escalas |
 
-## Entrada P002
+## Fase 3 — Testeo de destreza en limpieza
 
-id: P002
-fase: Fase 1
-prompt_version: v1
+Diseñaré ejercicios prácticos sobre los datos reales: identificar fallos, proponer tratamientos y justificar cada decisión (la justificación pesa tanto como la ejecución).
 
-Prompt: Solicitud de creación de un script R que cargara el dataset `devops_metrics.csv`, inspeccionara sus tipos y valores faltantes, corrigiera los errores tipográficos en las categorías (typos en team y module), imputara los valores faltantes según las reglas definidas en la especificación, detectara outliers por el método IQR, y exportara el dataset limpio a `data/clean/devops_metrics_clean.csv`.
 
-respuesta: Se creó el archivo `scripts/cargarLimpieza.R` con la siguiente secuencia de pasos: importación del CSV con `readr::read_csv()`, inspección inicial con `glimpse()` y `summary()`, corrección de tipos (priority como factor ordenado, team y module como factores nominales), limpieza de categorías con `case_when()` para resolver los typos (Alfa→Alpha, BETA→Beta, Gama→Gamma, Auth→auth, UI→ui), conversión de valores inválidos a NA (negativos y fuera de rango), imputación de faltantes por mediana agrupada por team, detección de outliers por IQR con creación de columnas flag, y exportación del dataset limpio.
+## Cuestionario inicial (responde con el número de la pregunta)
 
-Cambio realizados: Se creó `scripts/cargarLimpieza.R` (139 líneas). Se generó `data/clean/devops_metrics_clean.csv` con cinco mil filas y trece columnas (las diez originales más tres columnas de flag de outliers). Los errores iniciales del script (directorio de trabajo incorrecto y ruta del CSV mal ubicada) fueron corregidos durante la ejecución.
+1. ¿Cuál es el origen o dominio del CSV (ventas, encuestas, inventario, sensores...)?
+2. ¿Cuál es el objetivo final del análisis: reporte, modelo de datos, dashboard?
+3. ¿Con qué herramienta trabajarás la limpieza: Excel, Python/pandas, SQL, R u otra?
+4. ¿Qué columnas consideras **críticas** para tu análisis?
+5. ¿Cómo defines "error" en tu contexto: nulos, duplicados, formatos, outliers, todo?
+6. ¿Se permite eliminar registros, o todo debe conservarse/imputarse?
+7. ¿Prefieres un test **teórico** (decisiones), **práctico** (ejecución) o **mixto**?
+8. ¿Cómo calibrarías tu nivel actual: básico, intermedio o avanzado?
 
-Verificación: Se confirmó que el dataset limpio contiene exactamente cinco mil filas, que los typos en team fueron resueltos (Alpha, Beta, Delta, Gamma sin variaciones), que module quedó en minúsculas (auth, api, ui, db, infra, test), que deploy_status solo contiene las categorías válidas (success, failed, rolled_back, missing), que no quedan valores negativos en las variables numéricas, y que los outliers fueron detectados y marcados (300 en build_time_min, 272 en deploy_time_min, 326 en ticket_resolution_h). Los siete valores faltantes restantes corresponden a los valores inválidos que fueron convertidos a NA durante la limpieza.
+---
 
-## Entrada P003
+# Prompt 2 
 
-id: P003
-fase: Fase 2
-prompt_version: v1
+Estos son los datos "pasted content". Respecto a las preguntas, 1.- .csv es un archivo dedicado a los eventos de seguridad 2.- modelo de datos, analisis, pero es una parte inicial. 3.- Se usará R. 4.- Antes de proceder, considera que se entregará la información de los datos de forma inicial, luego se realizará la entrega de los pilares de investigación (siendo estos análisis combinatorio, probabilidad condicional, probabilidad total, teorema de bayes), se verá a profundidad a continuación, de modo que para continuar con su creación de estos cuatro pilares se tiene que explicar como y cuando y porque de que modo afectará al formato. 5.- Primero en los datos y el concepto de la respuesta de la pregunta 4. 6.- Conservarse. 7.- Ninguno 
 
-Prompt: Solicitud de creación de un script R que realizara el análisis descriptivo univariado del dataset limpio, calculando medidas de tendencia central (media, mediana, moda), dispersión (desviación estándar, varianza, rango, IQR, coeficiente de variación), asimetría y curtosis para las variables cuantitativas, y frecuencias absolutas y relativas para las variables cualitativas. Adicionalmente, se solicitó que el script generara automáticamente gráficos PNG (histogramas, boxplots y diagramas de barras) para cada variable.
+# Entrega de los datos 
 
-respuesta: Se creó el archivo `scripts/descriptiva_univariada.R` que carga el dataset limpio, calcula todas las medidas estadísticas solicitadas usando el paquete `moments` para skewness y kurtosis, y genera dieciséis gráficos PNG mediante `ggplot2`: seis histogramas con líneas de media y mediana, seis boxplots con outliers marcados en rojo, y cuatro diagramas de barras con conteos etiquetados. Las tablas resumen se exportaron como CSV a `reports/` y los gráficos a `reports/figuras/`.
+Diagnóstico estructural del CSV + Mapa Pilares→Formato + Cuestionario de destreza
 
-Cambio realizados: Se creó `scripts/descriptiva_univariada.R` (120 líneas). Se generaron `reports/tabla_cuantitativas.csv` (6 variables × 16 medidas) y `reports/tabla_cualitativas.csv` (21 filas de frecuencias). Se produjeron 16 archivos PNG en `reports/figuras/`. Se requirió la instalación del paquete `moments` para las funciones de asimetría y curtosis.
+**Regla marco (según tu respuesta 6):** conservar ≠ no tocar. Conservar significa *estandarizar, marcar e imputar* — nunca eliminar filas. Todas tus decisiones se evaluarán bajo esa restricción.
 
-Verificación: Confirmé que los valores de skewness son positivos para las variables con distribución log-normal (build_time_min: 3.389, deploy_time_min: 5.166, ticket_resolution_h: 6.077), lo cual es coherente con colas derechas alargadas. Verifiqué que test_coverage_pct tiene skewness ligeramente negativa (-0.176) indicando leve asimetría izquierda. Comprobé que las frecuencias relativas de cada variable cualitativa suman aproximadamente 100%, y que los 16 archivos PNG fueron generados correctamente en `reports/figuras/`. Los avisos de ggplot2 sobre filas removidas corresponden a los valores NA que se excluyen automáticamente al graficar.
+---
 
-## Entrada P004
+## 1. Estructura confirmada del archivo
 
-id: P004
-fase: Fase 3
-prompt_version: v1
+| Columna | Tipo aparente | Estado observado |
+|---|---|---|
+| `id_evento` | Entero (clave) | ⚠️ Duplicados: ids **995, 1104, 1127, 1161, 1713, 1753, 716** (idénticos) y **2373, 2172** (contradictorios: mismo evento, `veredicto` distinto) |
+| `fecha` | Fecha/hora | ⚠️ ≥3 formatos convivendo (`2026/05/03 01:23`, `24/09/2026`, `2026-11-12`), ~20 filas vacías (ids 1, 1153, 1650, 633…), última línea truncada (`1949,...,fa`) |
+| `modulo` | Categórica (¿4 niveles reales?) | ⚠️ ~15 variantes escritas: `db/database/data base/DB/ db `, `api/API/Api/ api `, `auth/AUTH/authentication/athu`, `ui/UI/ ui ` |
+| `alerta` | Booleana | ⚠️ ≥8 codificaciones: `0/1, no/yes, NO/No, sí/si/SI/Si, true/false, N/A, ""` |
+| `incidente_real` | Booleana (ground truth) | ⚠️ `no/0, sí/si/1, unknown, ?, ""` |
+| `veredicto` | Categórica | ⚠️ `clean/limpio, negative/negativo/-, positive/positivo/+, Malware/MALWARE/malware, ""` |
+| `tam_commit` | Entero | ⚠️ Negativos (-267, -87, -30…), sentinelas `999999` (ids 613, 995, 1247…), vacíos |
+| `t_respuesta_h` | Numérico | ⚠️ Decimales con coma entrecomillados (`"3,9"` vs `1.7`), sentinelas `99999` (~20 casos), negativos (-6.5, -29.3, -166…), vacíos |
 
-Prompt: Solicitud de creación de un script R que aplicara la regla de Sturges para determinar el número de clases de las variables cuantitativas, generara tablas de frecuencias con intervalos y clase modal, y realizara comparaciones de medias agrupadas por team, module y priority. Adicionalmente, se pidieron tablas de contingencia entre variables cualitativas y gráficos comparativos.
+---
 
-respuesta: Se creó el archivo `scripts/frecuencias_agrupaciones.R` que calcula k = 1 + 3.322 × log₁₀(5000) = 14 clases mediante la fórmula de Sturges, genera tablas de frecuencias con intervalos, frecuencia absoluta, relativa y acumulada para cada variable cuantitativa, identifica la clase modal, y produce comparaciones de medias por team (5 grupos), module (7 grupos) y priority (5 grupos). También genera tres tablas de contingencia (team×deploy_status, priority×deploy_status, module×deploy_status) y tres gráficos comparativos (boxplot de build_time por team, boxplot de resolución por priority, barras apiladas de status por team).
+## 2. Mapa Pilares → Formato (cómo, cuándo y por qué afectan)
 
-Cambio realizados: Se creó `scripts/frecuencias_agrupaciones.R` (130 líneas). Se generaron cuatro archivos CSV en `reports/`: tabla_frecuencias_sturges.csv, comparacion_team.csv, comparacion_module.csv, comparacion_priority.csv. Se produjeron tres gráficos PNG adicionales en `reports/figuras/`.
+| Pilar | Qué exige del formato | Errores que lo rompen | Cuándo interviene |
+|---|---|---|---|
+| **Combinatorio** | Espacio muestral con categorías *finitas, disjuntas y exhaustivas* | Si `modulo` queda con 15 niveles en vez de 4, el espacio se infla artificialmente; `N/A`/`""` rompen la exhaustividad | **Primero**: nada se cuenta sobre categorías sucias |
+| **Condicional** | `alerta` e `incidente_real` binarizadas y alineadas fila a fila | `unknown/?/N/A` reducen denominadores; duplicados cuentan el mismo evento dos veces en P(I\|A) | Después de binarizar |
+| **Total + Bayes** | Partición por módulo (debe sumar 100%) y tabla 2×2 `incidente × veredicto` | `athu`/`data base` sacan eventos de la partición; los sinónimos de `veredicto` **dividen** el evento "positivo" → sensibilidad y FPR subestimadas | Tras normalizar categóricas, antes de estimar tasas |
+| **Monte Carlo** | Distribuciones estimables de `t_respuesta_h` y `tam_commit` + parámetros (prior, sens, FPR) | Sentinelas 99999 → medias absurdas simuladas; comas decimales → `NA` silenciosos en R; negativos → cantidades físicamente imposibles de simular | **Último**: valida lo analítico |
 
-Verificación: Confirmé que la fórmula de Sturges produce k=14 clases para n=5000 (1 + 3.322 × 3.699 = 13.29, redondeado a 14).
+**Idea central que debes interiorizar:** cada decisión de limpieza desplaza una frecuencia, y cada frecuencia es un numerador o denominador de Bayes. Limpiar *es* definir el modelo probabilístico.
 
-Verifiqué que las clases modales son coherentes con las distribuciones observadas en la Fase 2 (por ejemplo, build_time_min tiene su clase modal en [2.53, 39.5) con 3073 observaciones, lo cual coincide con la asimetría positiva detectada previamente).
+---
 
-Comprobé que las tablas de contingencia muestran distribuciones proporcionales similares entre equipos, y que los gráficos se generaron sin errores.
+## 3. Cuestionario de destreza — responde por código (ej. B1.2)
 
-Además, el aviso de ggplot2 sobre filas removidas corresponde a los valores NA excluidos del boxplot.
+Puedes responder en texto + fragmentos de R. Indica tu razonamiento aunque no llegues al código.
 
-## Entrada P005
+### B0 — Carga y auditoría
+- **B0.1** Carga el archivo en R y reporta dimensiones exactas. La última línea llegó truncada (`1949` tiene 4 de 8 campos): ¿cómo la *detectas* programáticamente y qué haces con ella sin eliminarla?
+- **B0.2** ¿Cómo cargas el archivo para que `"3,9"` sea un decimal y no texto o dos columnas? ¿Qué papel juegan el entrecomillado y el separador decimal?
 
-id: P005
-fase: Fase 4
-prompt_version: v1
+### B1 — Duplicados
+- **B1.1** Detecta y cuantifica los duplicados exactos de `id_evento` con R.
+- **B1.2 (clave)** El id **2373** aparece dos veces: idéntico salvo `veredicto` (`negativo` vs `clean`). Bajo la regla de conservación, ¿qué regla aplicas? Argumenta cómo afecta cada opción (marcar / contar una vez / conservar ambos) al **prior, la sensibilidad y el FPR**.
+- **B1.3** ¿Por qué un duplicado distorsiona más a **Bayes** que al **conteo combinatorio**?
 
-Prompt: Solicitud de creación de un script R que realizara un análisis por grupo comparando métricas entre equipos, módulos y prioridades, calculando tasas de éxito de despliegue por grupo, medianas de las variables clave, y formulando hallazgos concretos respaldados con evidencia numérica. Se pidieron además gráficos comparativos de tasas de éxito y boxplots por grupo.
+### B2 — Fechas
+- **B2.1** Enumera los formatos convivientes y propón la unificación a una sola clase.
+- **B2.2** `05/03/2026` es ambiguo (¿5 de marzo o 3 de mayo?). ¿Qué evidencia *dentro del propio archivo* usas para resolver el orden día/mes? (pista: hay ids con primera componente >12).
+- **B2.3** Las ~20 filas sin fecha: ¿`NA`+bandera o imputas? ¿Algún pilar se ve afectado?
 
-Respuesta: Se creó el archivo `scripts/analisis_grupo.R` que filtra los registros válidos (excluyendo la categoría "missing"), calcula la tasa de éxito, fallo y rollback por team, module y priority, obtiene medianas de las variables numéricas por grupo, y genera cinco hallazgos redactados con cifras específicas.
+### B3 — Módulo (la partición de la probabilidad total)
+- **B3.1** Construye la tabla completa de mapeo variantes→nivel canónico. ¿Cuántos niveles reales existen? ¿Qué haces con `athu` y `data base`?
+- **B3.2** ¿Por qué `Api` vs `api` vs `"api "` rompen la partición aunque visualmente parezcan "casi iguales"? ¿Cuál de los tres es más peligroso de dejar pasar y por qué?
+- **B3.3** Si dejas 15 niveles, ¿qué le pasa exactamente a Σ P(módulo) y al espacio de combinaciones?
 
-Adicionalmente produce cuatro gráficos, barras de tasa de éxito por team y module, boxplot de cobertura por team, y boxplot de bugs por module.
+### B4 — Booleanas
+- **B4.1** Inventario completo de codificaciones en `alerta` e `incidente_real` y tu mapeo único propuesto.
+- **B4.2 (clave)** `N/A`, `?`, `unknown`, `""`: ¿(a) `NA` o (b) tercera categoría "desconocido"? Analiza el efecto de cada opción sobre el denominador de P(incidente|alerta) y sobre el prior. Defiende una.
+- **B4.3** ¿Es `1` equivalente a `yes` en `alerta`? Verifícalo con los ids 558, 659, 783 y justifica.
 
-Cambio realizados: Se creó `scripts/analisis_grupo.R` (140 líneas). Se generaron cinco archivos CSV de hallazgos en `reports/` y cuatro gráficos PNG en `reports/figuras/`. Los hallazgos principales fueron: Alpha lidera en tasa de éxito (65.32%) frente a Beta (62.88%), el módulo infra tiene la mayor tasa de éxito (67.93%) y test la menor (60.87%), Delta presenta la mayor cobertura de pruebas (72.8%), y los tickets de prioridad media tardan más en resolverse (7.68 h) que los de prioridad baja (7.38 h).
+### B5 — Veredicto (el detector de Bayes)
+- **B5.1** Propón la armonización final: ¿`veredicto` tiene 2, 3 o más estados? Justifica con conteos.
+- **B5.2 (ambigüedad crítica)** ¿`-` es un veredicto negativo o un faltante? ¿`negative` es lo mismo que `clean`? Muestra cómo cambia el **FPR** bajo cada lectura.
+- **B5.3 (trampa)** Ids **640, 540, 790**: `incidente_real=no` con `veredicto=Malware`. ¿Error a corregir o señal legítima? ¿Qué le pasaría a Bayes si los "corriges"?
 
-Verificación: Confirmé que las tasas de éxito son coherentes con las tablas de contingencia (la proporción de success es similar entre equipos, rondando el 63-65%).
+### B6 — Numéricas
+- **B6.1** Convierte `"3,9"`→3.9 conservando todas las filas. ¿Qué le pasa a la media si mezclas texto y número?
+- **B6.2** ¿`99999`/`999999` son outliers o códigos de faltante? Da tu evidencia (frecuencia, aislamiento) y el tratamiento conservador.
+- **B6.3** Negativos imposibles (`t=-6.5` id 1328; `tam=-267` id 2197): ¿`NA`+bandera, valor absoluto, winsorización? Justifica el impacto en **Monte Carlo**.
+- **B6.4** ¿Cómo fijas un umbral defendible entre un valor extremo real (35.3 h) y un sentinela (99999), sin eliminar nada arbitrariamente?
 
-Noté que el hallazgo sobre bugs por team resulta trivial, con trivial nos referimos a que no presenta variación significativa, porque todos los equipos tienen la misma mediana (3.0), lo cual indica que el dataset no presenta variación significativa en esa métrica entre grupos.
+### B7 — Integridad lógica
+- **B7.1 (trampa)** Id **2549**: `alerta=No` pero `incidente_real=sí`. ¿Error o evento real (alerta omitida)? ¿Para qué pilar es materia prima?
+- **B7.2** Describe la tabla 2×2 `incidente × veredicto` post-limpieza: qué celda alimenta el prior, cuál la sensibilidad, cuál el FPR.
+- **B7.3** ¿Cómo verificas huecos en la secuencia de `id_evento`? ¿Importa para algún pilar?
 
-Verifiqué que los cuatro gráficos PNG se generaron correctamente y que las tablas exportadas contienen los datos esperados, para uso en reportes o presentaciones.
+### B8 — Simulación-ready (Monte Carlo)
+- **B8.1** Lista los parámetros que tu limpieza deja listos para estimar.
+- **B8.2** Si solo pudieras corregir **un** tipo de error, ¿cuál distorsiona más la comparación simulado vs analítico? Rankea los 3 más críticos.
 
-## Entrada P006
+---
 
-id: P006
-fase: Fase 5
-Versión_prompt: v1
+## 4. Rúbrica de evaluación (por ítem)
 
-Prompt: Solicitud de creación de un script R que calculara las correlaciones entre variables cuantitativas (Pearson y Spearman), generara scatter plots con línea de regresión para los pares más relevantes, aplicara pruebas Chi-cuadrado a las tablas de contingencia entre variables cualitativas, e incluyera una nota explícita sobre la distinción entre correlación y causalidad.
+| Criterio | 0 pts | 1 pt | 2 pts |
+|---|---|---|---|
+| Detección | No identifica | Identifica parcialmente | Inventario completo con evidencia (ids) |
+| Ejecución R | No aplica | Código con pérdida de filas o `NA` silenciosos | Correcto y conservador |
+| Justificación por pilar | Ausente | Menciona el pilar | Cuantifica el efecto sobre la tasa/espacio |
 
-respuesta: Se creó el archivo `scripts/relaciones_bivariadas.R` que calcula matrices de correlación Pearson y Spearman para las seis variables cuantitativas, identifica los pares con mayor correlación absoluta, genera cuatro scatter plots con línea de tendencia (build vs deploy, commit vs bugs, coverage vs bugs, resolution vs deploy), ejecuta cinco pruebas Chi-cuadrado sobre cruces de variables cualitativas, y exporta las matrices de correlación a `reports/bivariada/`.
+**Siguiente paso:** responde los bloques en orden (puedes empezar por B0–B3). Evaluaré tus respuestas, ajustaré la profundidad de los bloques siguientes, y con tu limpieza validada construiremos los cuatro ejercicios de los pilares sobre tus propias tasas estimadas.
 
-Cambio realizados: Se creó `scripts/relaciones_bivariadas.R` (136 líneas). Se generaron cuatro scatter plots en `reports/figuras/bivariada/` y tres archivos CSV en `reports/bivariada/` (correlaciones Pearson, Spearman, y pares de mayor correlación).
+# Prompt 3 
 
-El hallazgo principal es que todas las correlaciones son cercanas a cero (máximo 0.020), lo cual es coherente con un dataset generado con variables independientes.
-
-Las pruebas Chi-cuadrado arrojan p-valores superiores a 0.05 en todos los cruces, indicando que no existe asociación estadísticamente significativa entre las variables cualitativas.
-
-Verificación: Confirmé que las correlaciones máximas no superan 0.021 en valor absoluto, lo cual es esperable dado que el dataset fue generado con variables muestreadas de forma independiente.
-
-Verifiqué, además, que los p-valores de Chi-cuadrado son todos mayores a 0.05 (el más cercano es module × deploy_status con p = 0.0635), lo que indica ausencia de asociación significativa.
-
-Los avisos sobre la aproximación Chi-cuadrado se deben a que la categoría "missing" tiene pocas observaciones en las tablas de contingencia, lo cual no invalida el resultado pero es pertinente mencionarlo.
-
-Y, por último, comprobe que los cuatro scatter plots (es decir, los gráficos de dispersión) se generaron con la línea de regresión visible y que las matrices exportadas contienen los valores correctos.
-
-## Entrada P007
-
-id: P007
-fase: Fase 6
-versión prompt: v2
-
-Prompt: Solicitud de creación de un script R que generara visualizaciones finales con títulos que comunicaran hallazgos específicos, ejes con unidades claras, y subtítulos con contexto.
-
-Se pidieron ocho gráficos que cubrieran los cuatro tipos requeridos: histogramas para variables continuas, boxplots para comparaciones entre grupos, barras para variables cualitativas, y dispersión para relaciones entre cuantitativas.
-
-Respuesta: Se creó el archivo `scripts/visualizacion_final.R` que genera ocho gráficos PNG en `reports/figuras/visualizacion/`, cada uno con un título que comunica el hallazgo principal, un subtítulo con contexto numérico, y ejes etiquetados con sus unidades correspondientes.
-
-Se aplicó un tema personalizado consistente en todos los gráficos para mantener coherencia visual.
-
-Cambio realizados: Se creó `scripts/visualizacion_final.R` (130 líneas).
-
-Se generaron ocho gráficos PNG numerados del 01 al 08 en `reports/figuras/visualizacion/`.
-
-Los gráficos cubren: histograma de build time (asimetría positiva), boxplot de build time por team (sin diferencias), barras de tasa de éxito por module (infra lidera con 67.9%), dispersión de coverage vs bugs (sin correlación), boxplot de resolución por priority (similar entre grupos), barras apiladas de status por team (proporciones estables), histograma de cobertura (simétrica en ~72%), y dispersión de build vs deploy (sin correlación).
-
-Verificación: Confirmé que los ocho archivos PNG se generaron correctamente en la carpeta `reports/figuras/visualizacion/`. Además, que los títulos de cada gráfico comunican un hallazgo concreto con evidencia numérica (por ejemplo, "El 61% de los builds dura menos de 39.5 minutos" o "Infra tiene la mayor tasa de despliegue exitoso (67.9%)"). Comprobé que los ejes incluyen las unidades correspondientes (minutos, horas, porcentaje, cantidad) y que los mensajes de `geom_smooth()` sobre la fórmula son informativos y no representan errores.
